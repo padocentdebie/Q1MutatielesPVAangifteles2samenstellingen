@@ -2,51 +2,61 @@
 <html lang="nl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Rustig Taallab: Samenstellingen</title>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; color: #4a4a4a; margin: 0; }
-        header { background: #ffffff; padding: 15px; border-bottom: 1px solid #d1d5db; display: flex; justify-content: space-between; }
-        #canvas-container { position: relative; width: 100vw; height: 50vh; background: #fafafa; border-bottom: 1px solid #e5e7eb; }
-        canvas { display: block; cursor: crosshair; touch-action: none; }
+        body { font-family: 'Segoe UI', Arial, sans-serif; background: #f0f2f5; color: #4a4a4a; margin: 0; touch-action: none; }
+        header { background: #ffffff; padding: 12px 20px; border-bottom: 1px solid #d1d5db; display: flex; justify-content: space-between; align-items: center; }
         
-        /* Scoreboard rechtsboven */
-        #scoreboard { position: fixed; top: 70px; right: 20px; background: rgba(255,255,255,0.9); border: 1px solid #d1d5db; padding: 15px; border-radius: 8px; font-size: 0.85em; z-index: 100; min-width: 140px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
-        .score-row { display: flex; justify-content: space-between; margin-bottom: 4px; border-bottom: 1px solid #f3f4f6; }
+        #canvas-container { position: relative; width: 100vw; height: 50vh; background: #fafafa; border-bottom: 1px solid #e5e7eb; cursor: crosshair; }
+        canvas { display: block; }
+
+        #scoreboard { 
+            position: absolute; top: 15px; right: 15px; 
+            background: rgba(255, 255, 255, 0.9); border: 1px solid #d1d5db; 
+            padding: 12px; border-radius: 8px; font-size: 0.8em; 
+            min-width: 130px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); z-index: 10;
+        }
+        .score-row { display: flex; justify-content: space-between; margin-bottom: 3px; border-bottom: 1px solid #f3f4f6; }
         .score-row.active { color: #8b5cf6; font-weight: bold; }
 
-        .controls { position: absolute; bottom: 12px; left: 12px; display: flex; gap: 8px; background: white; padding: 10px; border-radius: 6px; border: 1px solid #d1d5db; }
-        #exercise-section { background: #ffffff; padding: 30px; max-width: 900px; margin: 20px auto; border-radius: 8px; border: 1px solid #e5e7eb; }
+        .controls { position: absolute; bottom: 12px; left: 12px; display: flex; gap: 8px; background: white; padding: 10px; border-radius: 6px; border: 1px solid #d1d5db; z-index: 10; }
+        
+        #exercise-section { background: #ffffff; padding: 35px 25px; max-width: 950px; margin: 25px auto; border-radius: 8px; border: 1px solid #e5e7eb; box-shadow: 0 2px 10px rgba(0,0,0,0.02); }
         .quiz-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 15px; }
         .q-item { background: #f9fafb; padding: 15px; border-radius: 6px; border: 1px solid #f3f4f6; }
-        input[type="text"] { width: 90%; padding: 8px; border: 1px solid #d1d5db; border-radius: 4px; margin-top: 5px; }
-        button { padding: 8px 12px; border-radius: 4px; border: none; cursor: pointer; background: #9ca3af; color: white; }
-        #addBtn { background: #a78bfa; }
+        
+        input[type="text"] { width: 90%; padding: 8px; border: 1px solid #d1d5db; border-radius: 4px; margin-top: 6px; outline-color: #a78bfa; }
+        select, button { padding: 8px 12px; border-radius: 4px; border: 1px solid #d1d5db; background: #fff; cursor: pointer; color: #4b5563; }
+        #addBtn { background: #a78bfa; color: white; border: none; }
+        #clearBtn { background: #f3f4f6; border: none; }
     </style>
 </head>
 <body>
 
 <header>
     <div><strong>Klas:</strong> <select id="classSelect"></select></div>
-    <div style="color: #9ca3af;">Fase 1: Woordverzamelaar</div>
+    <div style="color: #9ca3af; font-size: 0.9em;">Fase 1: Woorden Smijten & Verbinden</div>
 </header>
 
 <div id="canvas-container">
     <canvas id="whiteboard"></canvas>
+    
     <div id="scoreboard">
-        <strong style="display:block; border-bottom: 1px solid #eee; margin-bottom: 5px;">Klas Klassement</strong>
+        <strong style="display:block; border-bottom: 1px solid #eee; margin-bottom: 5px;">Klas Scores</strong>
         <div id="scoreList"></div>
     </div>
+
     <div class="controls">
         <input type="text" id="wordInput" placeholder="Nieuw woord...">
-        <button id="addBtn">Smijt op bord</button>
-        <button id="clearBtn" style="background:#e5e7eb; color:#666;">Wissen</button>
+        <button id="addBtn">Smijt</button>
+        <button id="clearBtn">Wis Bord</button>
     </div>
 </div>
 
 <div id="exercise-section">
-    <h2>Fase 2: Individuele Check</h2>
-    <p style="color: #9ca3af; font-size: 0.9em;">Spel de samenstellingen correct. Punten tellen mee voor het klassement!</p>
+    <h2 style="font-weight: 400; margin-top: 0;">Fase 2: Kris-Kras Quiz</h2>
+    <p style="color: #9ca3af; font-size: 0.85em; margin-bottom: 25px;">Spel de samenstellingen correct. Punten tellen live mee voor het klassement!</p>
     <div class="quiz-grid" id="quizGrid"></div>
 </div>
 
@@ -74,34 +84,57 @@
     klassen.forEach(k => select.add(new Option(k, k)));
 
     let currentClass = "Alpha", words = {}, isDrawing = false, isDragging = false, draggedId = null;
+    let lastX = 0, lastY = 0;
 
     function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight * 0.5; }
     window.onresize = resize; resize();
 
-    // --- CANVAS & FIREBASE SYNC ---
-    canvas.addEventListener('mousedown', e => {
+    // --- VLOEIENDE INTERACTIE (Muis & Touch) ---
+    const getPos = (e) => {
         const rect = canvas.getBoundingClientRect();
-        const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        return { x: clientX - rect.left, y: clientY - rect.top };
+    };
+
+    const startAction = (e) => {
+        const { x, y } = getPos(e);
+        lastX = x; lastY = y;
         draggedId = null;
         for (let id in words) {
             const w = words[id];
-            if (mx > w.x && mx < w.x + 120 && my > w.y - 25 && my < w.y + 10) { draggedId = id; isDragging = true; break; }
+            if (x > w.x && x < w.x + 120 && y > w.y - 25 && y < w.y + 10) { draggedId = id; isDragging = true; break; }
         }
         if (!isDragging) isDrawing = true;
-    });
+    };
 
-    canvas.addEventListener('mousemove', e => {
-        const rect = canvas.getBoundingClientRect();
-        const x = e.clientX - rect.left, y = e.clientY - rect.top;
-        if (isDragging) update(ref(db, `classes/${currentClass}/board/${draggedId}`), {x, y});
-        else if (isDrawing) push(ref(db, `classes/${currentClass}/board`), {x, y, color: '#9ca3af', type: 'line'});
-    });
+    const moveAction = (e) => {
+        const { x, y } = getPos(e);
+        if (isDragging) {
+            update(ref(db, `classes/${currentClass}/board/${draggedId}`), { x, y });
+        } else if (isDrawing) {
+            // Lokaal tekenen voor directe feedback
+            ctx.strokeStyle = "#d1d5db"; ctx.lineWidth = 2; ctx.lineCap = "round";
+            ctx.beginPath(); ctx.moveTo(lastX, lastY); ctx.lineTo(x, y); ctx.stroke();
+            
+            // Opslaan als segment
+            push(ref(db, `classes/${currentClass}/board`), { x, y, px: lastX, py: lastY, type: 'line' });
+            lastX = x; lastY = y;
+        }
+    };
 
-    canvas.addEventListener('mouseup', () => { isDrawing = false; isDragging = false; ctx.beginPath(); });
+    const endAction = () => { isDrawing = false; isDragging = false; ctx.beginPath(); };
+
+    canvas.addEventListener('mousedown', startAction);
+    canvas.addEventListener('mousemove', moveAction);
+    window.addEventListener('mouseup', endAction);
+    canvas.addEventListener('touchstart', (e) => { e.preventDefault(); startAction(e); });
+    canvas.addEventListener('touchmove', (e) => { e.preventDefault(); moveAction(e); });
+    canvas.addEventListener('touchend', endAction);
 
     document.getElementById('addBtn').onclick = () => {
         const val = document.getElementById('wordInput').value;
-        if(val) push(ref(db, `classes/${currentClass}/board`), {text: val, x: Math.random()*(canvas.width-100)+50, y: Math.random()*(canvas.height-50)+30, type: 'text'});
+        if(val) push(ref(db, `classes/${currentClass}/board`), { text: val, x: Math.random()*(canvas.width-120)+60, y: Math.random()*(canvas.height-60)+30, type: 'text' });
         document.getElementById('wordInput').value = '';
     };
 
@@ -115,15 +148,16 @@
                 if(item.type === 'text') {
                     ctx.font = "18px 'Segoe UI'"; ctx.fillStyle = "#6b7280";
                     ctx.fillText(item.text, item.x, item.y);
-                } else {
-                    ctx.strokeStyle = "#d1d5db"; ctx.lineWidth = 2;
-                    ctx.lineTo(item.x, item.y); ctx.stroke(); ctx.beginPath(); ctx.moveTo(item.x, item.y);
+                } else if(item.type === 'line') {
+                    ctx.strokeStyle = "#d1d5db"; ctx.lineWidth = 2; ctx.lineCap = "round";
+                    ctx.beginPath(); ctx.moveTo(item.px || item.x, item.py || item.y);
+                    ctx.lineTo(item.x, item.y); ctx.stroke();
                 }
             });
         });
     }
 
-    // --- SCOREBOARD LOGICA ---
+    // --- SCOREBOARD ---
     onValue(ref(db, `scores`), snap => {
         const scores = snap.val() || {};
         const list = document.getElementById('scoreList');
@@ -140,7 +174,7 @@
         if(el.value.trim().toLowerCase() === ans.toLowerCase() && !el.dataset.done) {
             el.style.background = "#f0fdf4"; el.style.borderColor = "#86efac";
             el.dataset.done = "true";
-            update(ref(db, `scores/${currentClass}`), { score: increment(1) });
+            update(ref(db, `scores/${currentClass}`), increment(1));
         }
     };
 
@@ -148,7 +182,7 @@
     initBoard("Alpha");
     document.getElementById('clearBtn').onclick = () => remove(ref(db, `classes/${currentClass}/board`));
 
-    // --- QUIZ ITEMS SHUFFLE ---
+    // --- QUIZ ITEMS ---
     const quizItems = [
         { q: "Vastgoed + handelaar", a: "Vastgoedhandelaar" },
         { q: "Gekke + koeien + ziekte", a: "Gekkekoeienziekte" },
@@ -164,7 +198,7 @@
     quizItems.forEach(item => {
         const div = document.createElement('div');
         div.className = 'q-item';
-        div.innerHTML = `<span style="font-size: 0.8em; color: #9ca3af;">Opdracht:</span><br>${item.q}<br><input type="text" oninput="check(this, '${item.a}')">`;
+        div.innerHTML = `<span style="font-size: 0.75em; color: #9ca3af;">Opgave:</span><br>${item.q}<br><input type="text" oninput="check(this, '${item.a}')">`;
         grid.appendChild(div);
     });
 </script>
