@@ -1,69 +1,172 @@
-<style>
-    /* Voeg dit toe aan de bestaande CSS */
-    #scoreboard {
-        position: fixed;
-        top: 70px;
-        right: 20px;
-        background: rgba(255, 255, 255, 0.8);
-        border: 1px solid #d1d5db;
-        padding: 15px;
-        border-radius: 8px;
-        font-size: 0.85em;
-        color: #6b7280;
-        z-index: 100;
-        min-width: 150px;
-    }
-    .score-row { display: flex; justify-content: space-between; margin-bottom: 5px; }
-    .score-row.active { color: #a78bfa; font-weight: bold; }
-</style>
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rustig Taallab: Samenstellingen</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; color: #4a4a4a; margin: 0; }
+        header { background: #ffffff; padding: 15px; border-bottom: 1px solid #d1d5db; display: flex; justify-content: space-between; }
+        #canvas-container { position: relative; width: 100vw; height: 50vh; background: #fafafa; border-bottom: 1px solid #e5e7eb; }
+        canvas { display: block; cursor: crosshair; touch-action: none; }
+        
+        /* Scoreboard rechtsboven */
+        #scoreboard { position: fixed; top: 70px; right: 20px; background: rgba(255,255,255,0.9); border: 1px solid #d1d5db; padding: 15px; border-radius: 8px; font-size: 0.85em; z-index: 100; min-width: 140px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+        .score-row { display: flex; justify-content: space-between; margin-bottom: 4px; border-bottom: 1px solid #f3f4f6; }
+        .score-row.active { color: #8b5cf6; font-weight: bold; }
 
-<div id="scoreboard">
-    <strong style="display:block; margin-bottom:10px; border-bottom: 1px solid #eee;">Live Klas Score</strong>
-    <div id="scoreList"></div>
+        .controls { position: absolute; bottom: 12px; left: 12px; display: flex; gap: 8px; background: white; padding: 10px; border-radius: 6px; border: 1px solid #d1d5db; }
+        #exercise-section { background: #ffffff; padding: 30px; max-width: 900px; margin: 20px auto; border-radius: 8px; border: 1px solid #e5e7eb; }
+        .quiz-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 15px; }
+        .q-item { background: #f9fafb; padding: 15px; border-radius: 6px; border: 1px solid #f3f4f6; }
+        input[type="text"] { width: 90%; padding: 8px; border: 1px solid #d1d5db; border-radius: 4px; margin-top: 5px; }
+        button { padding: 8px 12px; border-radius: 4px; border: none; cursor: pointer; background: #9ca3af; color: white; }
+        #addBtn { background: #a78bfa; }
+    </style>
+</head>
+<body>
+
+<header>
+    <div><strong>Klas:</strong> <select id="classSelect"></select></div>
+    <div style="color: #9ca3af;">Fase 1: Woordverzamelaar</div>
+</header>
+
+<div id="canvas-container">
+    <canvas id="whiteboard"></canvas>
+    <div id="scoreboard">
+        <strong style="display:block; border-bottom: 1px solid #eee; margin-bottom: 5px;">Klas Klassement</strong>
+        <div id="scoreList"></div>
+    </div>
+    <div class="controls">
+        <input type="text" id="wordInput" placeholder="Nieuw woord...">
+        <button id="addBtn">Smijt op bord</button>
+        <button id="clearBtn" style="background:#e5e7eb; color:#666;">Wissen</button>
+    </div>
+</div>
+
+<div id="exercise-section">
+    <h2>Fase 2: Individuele Check</h2>
+    <p style="color: #9ca3af; font-size: 0.9em;">Spel de samenstellingen correct. Punten tellen mee voor het klassement!</p>
+    <div class="quiz-grid" id="quizGrid"></div>
 </div>
 
 <script type="module">
-    // ... (behoud de bestaande imports en config) ...
-    import { increment } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getDatabase, ref, onValue, push, remove, update, increment } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
-    // ... (bestaande canvas en Firebase initialisatie) ...
+    const firebaseConfig = {
+        apiKey: "AIzaSyA3_rzoZOWytlyAbYKKe_WuFlD8z2WvbX4",
+        authDomain: "aangifteq2les1.firebaseapp.com",
+        databaseURL: "https://aangifteq2les1-default-rtdb.europe-west1.firebasedatabase.app",
+        projectId: "aangifteq2les1",
+        storageBucket: "aangifteq2les1.firebasestorage.app",
+        messagingSenderId: "1071661084879",
+        appId: "1:1071661084879:web:ec81dfed806ad75a8847ba"
+    };
 
-    // Functie om de score bij te werken
-    function updateScore(className) {
-        const scoreRef = ref(db, `scores/${className}`);
-        set(scoreRef, increment(1));
-    }
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+    const canvas = document.getElementById('whiteboard');
+    const ctx = canvas.getContext('2d');
+    const select = document.getElementById('classSelect');
 
-    // Luister naar de scores van ALLE klassen voor het scoreboard
-    onValue(ref(db, `scores`), (snap) => {
-        const scores = snap.val() || {};
-        const scoreList = document.getElementById('scoreList');
-        scoreList.innerHTML = '';
-        
-        // Sorteer klassen op score
-        Object.entries(scores)
-            .sort(([,a], [,b]) => b - a)
-            .forEach(([name, score]) => {
-                const row = document.createElement('div');
-                row.className = `score-row ${name === currentClass ? 'active' : ''}`;
-                row.innerHTML = `<span>Klas ${name}</span> <span>${score}</span>`;
-                scoreList.appendChild(row);
-            });
+    const klassen = ["Alpha","Bravo","Charlie","Delta","Echo","Foxtrot","Golf","Hotel","Juliet","Kilo","Lima","Mike"];
+    klassen.forEach(k => select.add(new Option(k, k)));
+
+    let currentClass = "Alpha", words = {}, isDrawing = false, isDragging = false, draggedId = null;
+
+    function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight * 0.5; }
+    window.onresize = resize; resize();
+
+    // --- CANVAS & FIREBASE SYNC ---
+    canvas.addEventListener('mousedown', e => {
+        const rect = canvas.getBoundingClientRect();
+        const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+        draggedId = null;
+        for (let id in words) {
+            const w = words[id];
+            if (mx > w.x && mx < w.x + 120 && my > w.y - 25 && my < w.y + 10) { draggedId = id; isDragging = true; break; }
+        }
+        if (!isDragging) isDrawing = true;
     });
 
-    // Aangepaste check-functie die ook de score verwerkt
-    window.check = (el, ans) => {
-        const val = el.value.trim().toLowerCase();
-        const correct = ans.toLowerCase();
+    canvas.addEventListener('mousemove', e => {
+        const rect = canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left, y = e.clientY - rect.top;
+        if (isDragging) update(ref(db, `classes/${currentClass}/board/${draggedId}`), {x, y});
+        else if (isDrawing) push(ref(db, `classes/${currentClass}/board`), {x, y, color: '#9ca3af', type: 'line'});
+    });
 
-        if(val === correct && !el.dataset.done) { 
-            el.style.background = "#f0fdf4"; 
-            el.style.borderColor = "#86efac"; 
-            el.dataset.done = "true"; // Voorkom dubbele punten voor hetzelfde woord
-            updateScore(currentClass); 
-        } else if (val !== correct) {
-            el.style.background = "white"; 
-            el.style.borderColor = "#d1d5db";
+    canvas.addEventListener('mouseup', () => { isDrawing = false; isDragging = false; ctx.beginPath(); });
+
+    document.getElementById('addBtn').onclick = () => {
+        const val = document.getElementById('wordInput').value;
+        if(val) push(ref(db, `classes/${currentClass}/board`), {text: val, x: Math.random()*(canvas.width-100)+50, y: Math.random()*(canvas.height-50)+30, type: 'text'});
+        document.getElementById('wordInput').value = '';
+    };
+
+    function initBoard(name) {
+        currentClass = name;
+        onValue(ref(db, `classes/${currentClass}/board`), snap => {
+            ctx.clearRect(0,0,canvas.width,canvas.height);
+            words = snap.val() || {};
+            Object.keys(words).forEach(id => {
+                const item = words[id];
+                if(item.type === 'text') {
+                    ctx.font = "18px 'Segoe UI'"; ctx.fillStyle = "#6b7280";
+                    ctx.fillText(item.text, item.x, item.y);
+                } else {
+                    ctx.strokeStyle = "#d1d5db"; ctx.lineWidth = 2;
+                    ctx.lineTo(item.x, item.y); ctx.stroke(); ctx.beginPath(); ctx.moveTo(item.x, item.y);
+                }
+            });
+        });
+    }
+
+    // --- SCOREBOARD LOGICA ---
+    onValue(ref(db, `scores`), snap => {
+        const scores = snap.val() || {};
+        const list = document.getElementById('scoreList');
+        list.innerHTML = '';
+        Object.entries(scores).sort(([,a],[,b]) => b-a).forEach(([name, val]) => {
+            const row = document.createElement('div');
+            row.className = `score-row ${name === currentClass ? 'active' : ''}`;
+            row.innerHTML = `<span>${name}</span><span>${val}</span>`;
+            list.appendChild(row);
+        });
+    });
+
+    window.check = (el, ans) => {
+        if(el.value.trim().toLowerCase() === ans.toLowerCase() && !el.dataset.done) {
+            el.style.background = "#f0fdf4"; el.style.borderColor = "#86efac";
+            el.dataset.done = "true";
+            update(ref(db, `scores/${currentClass}`), { score: increment(1) });
         }
     };
+
+    select.onchange = e => initBoard(e.target.value);
+    initBoard("Alpha");
+    document.getElementById('clearBtn').onclick = () => remove(ref(db, `classes/${currentClass}/board`));
+
+    // --- QUIZ ITEMS SHUFFLE ---
+    const quizItems = [
+        { q: "Vastgoed + handelaar", a: "Vastgoedhandelaar" },
+        { q: "Gekke + koeien + ziekte", a: "Gekkekoeienziekte" },
+        { q: "Mooie + dames + fiets", a: "Mooiedamesfiets" },
+        { q: "Tweede + Kamer + zitting", a: "Tweede Kamerzitting" },
+        { q: "Greenpeace + donateur", a: "Greenpeace-donateur" },
+        { q: "Albert Heijn + filiaal", a: "Albert Heijn-filiaal" },
+        { q: "Pieter Paul Rubens + huis", a: "Pieter Paul Rubenshuis" },
+        { q: "Philips + lamp", a: "Philips-lamp" }
+    ].sort(() => Math.random() - 0.5);
+
+    const grid = document.getElementById('quizGrid');
+    quizItems.forEach(item => {
+        const div = document.createElement('div');
+        div.className = 'q-item';
+        div.innerHTML = `<span style="font-size: 0.8em; color: #9ca3af;">Opdracht:</span><br>${item.q}<br><input type="text" oninput="check(this, '${item.a}')">`;
+        grid.appendChild(div);
+    });
 </script>
+</body>
+</html>
