@@ -1,0 +1,69 @@
+<style>
+    /* Voeg dit toe aan de bestaande CSS */
+    #scoreboard {
+        position: fixed;
+        top: 70px;
+        right: 20px;
+        background: rgba(255, 255, 255, 0.8);
+        border: 1px solid #d1d5db;
+        padding: 15px;
+        border-radius: 8px;
+        font-size: 0.85em;
+        color: #6b7280;
+        z-index: 100;
+        min-width: 150px;
+    }
+    .score-row { display: flex; justify-content: space-between; margin-bottom: 5px; }
+    .score-row.active { color: #a78bfa; font-weight: bold; }
+</style>
+
+<div id="scoreboard">
+    <strong style="display:block; margin-bottom:10px; border-bottom: 1px solid #eee;">Live Klas Score</strong>
+    <div id="scoreList"></div>
+</div>
+
+<script type="module">
+    // ... (behoud de bestaande imports en config) ...
+    import { increment } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+    // ... (bestaande canvas en Firebase initialisatie) ...
+
+    // Functie om de score bij te werken
+    function updateScore(className) {
+        const scoreRef = ref(db, `scores/${className}`);
+        set(scoreRef, increment(1));
+    }
+
+    // Luister naar de scores van ALLE klassen voor het scoreboard
+    onValue(ref(db, `scores`), (snap) => {
+        const scores = snap.val() || {};
+        const scoreList = document.getElementById('scoreList');
+        scoreList.innerHTML = '';
+        
+        // Sorteer klassen op score
+        Object.entries(scores)
+            .sort(([,a], [,b]) => b - a)
+            .forEach(([name, score]) => {
+                const row = document.createElement('div');
+                row.className = `score-row ${name === currentClass ? 'active' : ''}`;
+                row.innerHTML = `<span>Klas ${name}</span> <span>${score}</span>`;
+                scoreList.appendChild(row);
+            });
+    });
+
+    // Aangepaste check-functie die ook de score verwerkt
+    window.check = (el, ans) => {
+        const val = el.value.trim().toLowerCase();
+        const correct = ans.toLowerCase();
+
+        if(val === correct && !el.dataset.done) { 
+            el.style.background = "#f0fdf4"; 
+            el.style.borderColor = "#86efac"; 
+            el.dataset.done = "true"; // Voorkom dubbele punten voor hetzelfde woord
+            updateScore(currentClass); 
+        } else if (val !== correct) {
+            el.style.background = "white"; 
+            el.style.borderColor = "#d1d5db";
+        }
+    };
+</script>
